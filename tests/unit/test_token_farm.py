@@ -1,3 +1,4 @@
+from lib2to3.pgen2 import token
 from brownie import network, exceptions
 from scripts.helpful_scripts import (
     LOCAL_BLOCKCHAIN_ENVIRONMENTS,
@@ -25,5 +26,25 @@ def test_set_price_feed_contract():
     # make sure non owners can't call this
     with pytest.raises(exceptions.VirtualMachineError):
         token_farm.setPriceFeedContract(
-            dharma_token.address, price_feed_address, {"from": non_owner}
+            dharma_token.address, price_feed_address, {"from": account}
         )
+
+
+def test_stake_tokens(amount_staked):
+    # Arrange
+    if network.show_active() not in LOCAL_BLOCKCHAIN_ENVIRONMENTS:
+        pytest.skip("Only for local testing")
+    account = get_account()
+    token_farm, dharma_token = deploy_token_farm_and_dharma_token()
+    # Act
+    dharma_token.approve(token_farm.address, amount_staked, {"from": account})
+    token_farm.stakeTokens(amount_staked, dharma_token.address, {"from": account})
+    # Assert
+    assert (
+        token_farm.stakingBalance(dharma_token.address, account.address)
+        == amount_staked
+    )
+
+
+def test_issue_tokens():
+    pass
