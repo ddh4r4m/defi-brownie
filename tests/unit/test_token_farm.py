@@ -2,6 +2,7 @@ from lib2to3.pgen2 import token
 from brownie import network, exceptions
 from scripts.helpful_scripts import (
     LOCAL_BLOCKCHAIN_ENVIRONMENTS,
+    INITIAL_PRICE_FEED_VALUE,
     get_account,
     get_contract,
 )
@@ -44,7 +45,25 @@ def test_stake_tokens(amount_staked):
         token_farm.stakingBalance(dharma_token.address, account.address)
         == amount_staked
     )
+    assert token_farm.uniqueTokensStaked(account.address) == 1
+    assert token_farm.stakers(0) == account.address
+    return token_farm, dharma_token
 
 
-def test_issue_tokens():
-    pass
+def test_issue_tokens(amount_staked):
+    # Arrange
+    if network.show_active() not in LOCAL_BLOCKCHAIN_ENVIRONMENTS:
+        pytest.skip("Only for local testing")
+    account = get_account()
+    token_farm, dharma_token = test_stake_tokens(amount_staked)
+    starting_balance = dharma_token.balanceOf(account.address)
+    # Act
+    token_farm.issueTokens({"from": account})
+    # Arrange
+    # we are staking one dharma_token which is equal in price ot 1 eth
+    ## so we should get 3,000 dapp tokens in reward
+    # since the price of eth is 3000 USD
+    assert (
+        dharma_token.balanceOf(account.address)
+        == starting_balance + INITIAL_PRICE_FEED_VALUE
+    )
